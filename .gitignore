@@ -1,0 +1,21 @@
+# Data
+dataset/
+*.h5
+*.keras
+*.pkl
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Colab cloned repo
+pyimagesearch-face-mask-detector/
