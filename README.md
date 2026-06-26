@@ -13,12 +13,12 @@
 
 ## What is this?
 
-A learning project where I built two different approaches to classify face images as **mask** or **no mask**:
+A learning project where I built two different approaches to classify face images as **mask** // **no mask**:
 
-1. **Notebook 1** — Custom CNN from scratch (~90-93% accuracy)
+1. **Notebook 1** — Custom CNN from scratch (~60% accuracy)
 2. **Notebook 2** — VGG16 transfer learning (~96% accuracy)
 
-The goal was to understand *why* transfer learning works so much better on small datasets.
+The goal was to understand why transfer learning works so much better on small datasets.
 
 ---
 
@@ -27,8 +27,8 @@ The goal was to understand *why* transfer learning works so much better on small
 ```
 face_mask_detection/
 ├── notebooks/
-│   ├── face_mask_detection1.ipynb   # Custom CNN from scratch
-│   └── face_mask_detection2.ipynb   # VGG16 transfer learning
+│   ├── face_mask_detection1.ipynb     #custom CNN from scratch
+│   └── face_mask_detection2.ipynb     # VGG16 transfer learning
 ├── reference/
 │   └── original_colab_notebook.ipynb
 ├── README.md
@@ -47,7 +47,7 @@ flowchart LR
     C --> D{Approach}
     D -->|Notebook 1| E[Custom CNN<br>4 conv blocks]
     D -->|Notebook 2| F[VGG16 Frozen<br>+ Dense head]
-    E --> G[~90-93%]
+    E --> G[~60%]
     F --> H[~96%]
 
     style A fill:#2E86C1,color:#fff
@@ -68,7 +68,7 @@ Built a 4-block CNN: Conv2D → BatchNorm → MaxPool → Dropout, ending with G
 - **ReduceLROnPlateau** — drops learning rate by 5x when validation loss stalls
 - Adam optimizer with low LR (1e-4)
 
-**Result:** ~90-93% accuracy. Decent, but clearly limited by the small dataset.
+**Result:** ~60% accuracy on hold-out set. Clearly limited by the small dataset.
 
 ## Notebook 2: VGG16 Transfer Learning
 
@@ -96,8 +96,8 @@ Loaded VGG16 (pretrained on 14M ImageNet images), froze all 134M params, added a
 - Freezing all layers is the right move for tiny datasets
 
 ### On the Comparison
-- Transfer learning gave ~3-6% better accuracy with 33,000x fewer trainable params
-- The custom CNN needed heavier augmentation and LR scheduling just to reach 90%
+- Transfer learning gave miles better accuracy with 33,000x fewer trainable params
+- The custom CNN needed heavier augmentation and LR scheduling just to reach ~60%
 - **Takeaway:** For small image datasets, always try transfer learning first
 
 ---
