@@ -1,22 +1,24 @@
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=28&pause=1000&color=2E86C1&center=true&vCenter=true&width=700&lines=Face+Mask+Detection;Transfer+Learning+with+VGG16;Binary+Image+Classification" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=28&pause=1000&color=2E86C1&center=true&vCenter=true&width=700&lines=Face+Mask+Detection;CNN+from+Scratch+vs+VGG16+Transfer+Learning" alt="Typing SVG" />
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/TensorFlow-2.x-FF6F00?logo=tensorflow&logoColor=white" />
-  <img src="https://img.shields.io/badge/Keras-VGG16-D00000?logo=keras&logoColor=white" />
+  <img src="https://img.shields.io/badge/Keras-CNN_&_VGG16-D00000?logo=keras&logoColor=white" />
   <img src="https://img.shields.io/badge/OpenCV-4.x-5C3EE8?logo=opencv&logoColor=white" />
-  <img src="https://img.shields.io/badge/Accuracy-~96%25-brightgreen" />
 </p>
 
 ---
 
-## About
+## What is this?
 
-A learning project that classifies face images as **with mask** or **without mask** using transfer learning. Built on Google Colab with a T4 GPU.
+A learning project where I built two different approaches to classify face images as **mask** or **no mask**:
 
-The model uses **VGG16** (pretrained on ImageNet) as a frozen feature extractor, with only a single dense layer trained on top — achieving **~96% test accuracy** on a dataset of ~1,376 images.
+1. **Notebook 1** — Custom CNN from scratch (~90-93% accuracy)
+2. **Notebook 2** — VGG16 transfer learning (~96% accuracy)
+
+The goal was to understand *why* transfer learning works so much better on small datasets.
 
 ---
 
@@ -25,119 +27,96 @@ The model uses **VGG16** (pretrained on ImageNet) as a frozen feature extractor,
 ```
 face_mask_detection/
 ├── notebooks/
-│   └── face_mask_detection.ipynb   # Clean, organized notebook
+│   ├── face_mask_detection1.ipynb   # Custom CNN from scratch
+│   └── face_mask_detection2.ipynb   # VGG16 transfer learning
 ├── reference/
-│   └── original_colab_notebook.ipynb  # Original messy Colab notebook
-├── .gitignore
-└── README.md
+│   └── original_colab_notebook.ipynb
+├── README.md
+├── requirements.txt
+└── .gitignore
 ```
 
 ---
 
-## Pipeline Overview
+## Pipeline
 
 ```mermaid
 flowchart LR
-    A[Raw Images<br>224x224] --> B[VGG16<br>preprocess_input]
+    A[Raw Images<br>224x224] --> B[Preprocessing]
     B --> C[Train/Val/Test<br>70/15/15]
-    C --> D[VGG16 Base<br>Frozen Layers]
-    D --> E[Dense 1<br>Sigmoid]
-    E --> F[Binary Output<br>Mask / No Mask]
+    C --> D{Approach}
+    D -->|Notebook 1| E[Custom CNN<br>4 conv blocks]
+    D -->|Notebook 2| F[VGG16 Frozen<br>+ Dense head]
+    E --> G[~90-93%]
+    F --> H[~96%]
 
     style A fill:#2E86C1,color:#fff
-    style D fill:#1B4F72,color:#fff
-    style F fill:#27AE60,color:#fff
+    style G fill:#E67E22,color:#fff
+    style H fill:#27AE60,color:#fff
 ```
 
 ---
 
-## How It Works
+## Notebook 1: Custom CNN from Scratch
 
-### 1. Dataset
-- Source: [pyimagesearch-face-mask-detector](https://github.com/ricklon/pyimagesearch-face-mask-detector)
-- Two classes: `with_mask` (690 images) and `without_mask` (686 images)
-- All images resized to **224×224** pixels
+Built a 4-block CNN: Conv2D → BatchNorm → MaxPool → Dropout, ending with GlobalAveragePooling.
 
-### 2. Transfer Learning with VGG16
-VGG16 is a 16-layer deep CNN trained on ImageNet (14M images, 1000 classes). Instead of training a CNN from scratch on our small dataset, we:
+**Key choices:**
+- **Swish activation** in middle blocks (slightly better gradients than ReLU for deeper layers)
+- **GlobalAveragePooling** instead of Flatten (way fewer params → less overfitting)
+- **BatchNorm + Dropout** together to stabilize training
+- **ReduceLROnPlateau** — drops learning rate by 5x when validation loss stalls
+- Adam optimizer with low LR (1e-4)
 
-1. **Load VGG16** with pretrained ImageNet weights
-2. **Remove** the final 1000-class softmax layer
-3. **Freeze** all 134M parameters (no gradient updates)
-4. **Add** a single `Dense(1, activation='sigmoid')` layer → only **4,097 trainable parameters**
+**Result:** ~90-93% accuracy. Decent, but clearly limited by the small dataset.
 
-> **Why this works:** The early layers of VGG16 detect edges, textures, and shapes — these features are universal and transfer well to new tasks. We only need to train the final layer to map these features to our binary classes.
+## Notebook 2: VGG16 Transfer Learning
 
-### 3. Data Augmentation
-To prevent overfitting on our small dataset, we apply real-time augmentation during training:
-- Random rotation (±20°)
-- Horizontal flip
-- Zoom (±20%)
-- Shear (±20%)
+Loaded VGG16 (pretrained on 14M ImageNet images), froze all 134M params, added a single Dense(1, sigmoid) layer.
 
-### 4. Training Details
-| Parameter | Value |
-|-----------|-------|
-| Optimizer | Adam |
-| Loss | Binary Crossentropy |
-| Batch Size | 32 |
-| Max Epochs | 30 |
-| Early Stopping | patience=3 |
-| Best Model Saved | `best_model.keras` |
+**Key choices:**
+- **`preprocess_input`** instead of `/255` — VGG16 expects ImageNet-style preprocessing (channel mean subtraction), not simple normalization
+- **Freeze everything** — with <1,500 images, fine-tuning risks destroying the pretrained features
+- **Only 4,097 trainable params** — converges in ~5-7 epochs
 
-### 5. Results
-| Metric | without_mask | with_mask |
-|--------|:-----------:|:---------:|
-| Precision | ~0.96 | ~0.96 |
-| Recall | ~0.95 | ~0.97 |
-| F1-Score | ~0.96 | ~0.96 |
-| **Overall Accuracy** | | **~96%** |
-
----
-
-## Technical Decisions Explained
-
-### Why VGG16 and Not a Custom CNN?
-With only ~1,376 images, training a deep CNN from scratch would overfit badly. VGG16's pretrained features act as a powerful, general-purpose feature extractor — we get the benefit of training on 14M images without needing that data ourselves.
-
-### Why Freeze All Layers?
-Fine-tuning (unfreezing some layers) can improve results on larger datasets, but with <1,500 images, the risk of overfitting the pretrained features is high. Keeping all VGG16 layers frozen is the safer choice.
-
-### Why Binary Crossentropy + Sigmoid (Not Softmax)?
-For a two-class problem, a single sigmoid output is simpler and mathematically equivalent to a 2-unit softmax. It outputs a probability between 0 and 1 — threshold at 0.5 to classify.
-
-### Why `preprocess_input` Instead of `/255`?
-VGG16 was trained with a specific preprocessing: subtracting the ImageNet mean pixel values per channel (not simple 0-1 normalization). Using the same preprocessing at inference time is critical for the pretrained weights to produce meaningful features.
-
----
-
-## How to Run
-
-1. Open `notebooks/face_mask_detection.ipynb` in **Google Colab**
-2. Set runtime to **GPU** (Runtime → Change runtime type → T4 GPU)
-3. Run all cells sequentially
-
-> **Note:** The notebook clones the dataset from GitHub — no manual download needed.
+**Result:** ~96% accuracy. Significantly better with way less training.
 
 ---
 
 ## What I Learned
 
-- Transfer learning lets you build accurate classifiers even with very small datasets
-- Freezing pretrained layers is a simple but effective strategy to avoid overfitting
-- Data augmentation is essential when working with limited training images
-- EarlyStopping + ModelCheckpoint together give you the best model without manual monitoring
-- VGG16's `preprocess_input` is different from simple normalization — using the wrong preprocessing breaks everything
+### On CNNs
+- Building from scratch teaches you how convolutions, pooling, and batch norm actually work together
+- GlobalAveragePooling > Flatten for small datasets — it acts as a structural regularizer
+- Swish is a nice upgrade from ReLU but won't save you if the data is too small
+
+### On Transfer Learning
+- Pretrained features from ImageNet generalize surprisingly well to faces/masks
+- The preprocessing must match what the model was trained with — `/255` vs `preprocess_input` makes a huge difference
+- Freezing all layers is the right move for tiny datasets
+
+### On the Comparison
+- Transfer learning gave ~3-6% better accuracy with 33,000x fewer trainable params
+- The custom CNN needed heavier augmentation and LR scheduling just to reach 90%
+- **Takeaway:** For small image datasets, always try transfer learning first
 
 ---
 
-## Technologies Used
+## How to Run
+
+1. Open either notebook in **Google Colab**
+2. Set runtime to **GPU** (Runtime → Change runtime type → T4)
+3. Run all cells — the dataset is cloned from GitHub automatically
+
+---
+
+## Tech Stack
 
 | Tool | Purpose |
 |------|---------|
-| TensorFlow/Keras | Deep learning framework |
-| VGG16 | Pretrained feature extractor |
+| TensorFlow/Keras | Model building and training |
+| VGG16 | Pretrained feature extractor (notebook 2) |
 | OpenCV | Image loading and resizing |
 | scikit-learn | Train/test split, classification report |
-| Matplotlib | Training curve visualization |
+| Matplotlib | Training curves |
 | Google Colab | GPU runtime (T4) |
